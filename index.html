@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI & Code — The Developer's Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fraunces:ital,wght@0,300;0,600;1,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── Design Tokens ─────────────────────────────── */
+    :root {
+      --bg:       #080810;
+      --surface:  #10101e;
+      --card:     #14142a;
+      --border:   #1e1e38;
+      --accent:   #00d4aa;
+      --orange:   #ff6b35;
+      --purple:   #a78bfa;
+      --text:     #dcdcf0;
+      --muted:    #5a5a7a;
+      --heading:  #f0f0ff;
+      --mono:     'JetBrains Mono', monospace;
+      --sans:     'Syne', sans-serif;
+      --serif:    'Fraunces', serif;
+    }
+
+    /* ─── Reset & Base ──────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    
+    /* ─── Egna ändringar ─────────────────────── detta är tillagt för navigation mellan olika ai genererade sidor.*/
+    .delsida {
+      color: black;
+      background-color: white;
+      margin: 50px;
+      padding-top: 50px;
+    }
+    
+    }
+    /* ─── Noise Texture Overlay ─────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+    /* ─── Navigation ────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 4rem;
+      background: rgba(8,8,16,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: border-color 0.3s;
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--orange); }
+    .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ─── Hero ──────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 0 4rem;
+      gap: 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -15%;
+      width: 60vw;
+      height: 60vw;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,212,170,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-text { padding-top: 6rem; }
+    .hero-eyebrow {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 1px solid rgba(0,212,170,0.3);
+      padding: 0.3rem 0.8rem;
+      border-radius: 2px;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero h1 {
+      font-family: var(--serif);
+      font-weight: 300;
+      font-size: clamp(3rem, 5vw, 5.5rem);
+      line-height: 1.08;
+      color: var(--heading);
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-desc {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 38ch;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .hero-cta {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .btn {
+      padding: 0.75rem 1.8rem;
+      border-radius: 3px;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-block;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      border: none;
+    }
+    .btn-primary:hover { background: #00f0c0; transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── Terminal Window ───────────────────────────── */
+    .hero-terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,170,0.05);
+      animation: fadeUp 0.8s 0.2s ease both;
+      padding-top: 5rem;
+    }
+    .terminal-bar {
+      background: #1a1a2e;
+      padding: 0.8rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      min-height: 260px;
+    }
+    .t-comment { color: #444466; }
+    .t-keyword { color: var(--purple); }
+    .t-string  { color: #a3e635; }
+    .t-fn      { color: var(--accent); }
+    .t-num     { color: var(--orange); }
+    .t-type    { color: #fbbf24; }
+    .t-cursor  {
+      display: inline-block; width: 2px; height: 1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+
+    /* ─── Section Scaffold ──────────────────────────── */
+    section { padding: 7rem 4rem; }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-weight: 300;
+      font-size: clamp(2rem, 3.5vw, 3.2rem);
+      color: var(--heading);
+      margin-bottom: 1.2rem;
+      line-height: 1.15;
+    }
+    .section-sub {
+      color: var(--muted);
+      max-width: 54ch;
+      font-size: 1rem;
+      margin-bottom: 3.5rem;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      width: 60px;
+      margin-bottom: 1rem;
+    }
+
+    /* ─── Overview Stats ────────────────────────────── */
+    .overview { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 4rem;
+    }
+    .stat-card {
+      background: var(--card);
+      padding: 2rem;
+      text-align: center;
+    }
+    .stat-num {
+      font-family: var(--serif);
+      font-size: 3rem;
+      color: var(--accent);
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.06em; }
+    .overview-text {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;
+    }
+    .overview-text p { color: var(--muted); font-size: 0.95rem; }
+    .overview-text p + p { margin-top: 1rem; }
+    .overview-text strong { color: var(--text); }
+
+    /* ─── Language Explorer ─────────────────────────── */
+    .lang-explorer { }
+    .lang-tabs {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .lang-tab {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 0.5rem 1.1rem;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .lang-tab:hover { border-color: var(--muted); color: var(--text); }
+    .lang-tab.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,212,170,0.08);
+    }
+    .lang-content { display: none; }
+    .lang-content.active { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; animation: fadeUp 0.35s ease; }
+    .pros-card, .cons-card {
+      border-radius: 8px;
+      padding: 2rem;
+      border: 1px solid;
+    }
+    .pros-card {
+      background: rgba(0,212,170,0.04);
+      border-color: rgba(0,212,170,0.2);
+    }
+    .cons-card {
+      background: rgba(255,107,53,0.04);
+      border-color: rgba(255,107,53,0.2);
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 0.7rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-icon {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .card-icon.pro { background: rgba(0,212,170,0.15); }
+    .card-icon.con { background: rgba(255,107,53,0.15); }
+    .card-title {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .card-title.pro { color: var(--accent); }
+    .card-title.con { color: var(--orange); }
+    .point-list { list-style: none; display: flex; flex-direction: column; gap: 0.9rem; }
+    .point-list li {
+      display: flex; align-items: flex-start; gap: 0.7rem;
+      font-size: 0.9rem; color: var(--text);
+    }
+    .point-list li::before {
+      content: '→';
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      flex-shrink: 0;
+    }
+    .pros-card .point-list li::before { color: var(--accent); }
+    .cons-card .point-list li::before { color: var(--orange); }
+    .point-strong { font-weight: 600; color: var(--heading); display: block; margin-bottom: 0.1rem; }
+    .point-desc { color: var(--muted); font-size: 0.83rem; }
+    .lang-meta {
+      grid-column: 1 / -1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      display: flex; align-items: center; gap: 3rem;
+      flex-wrap: wrap;
+    }
+    .meta-item { text-align: center; }
+    .meta-val {
+      font-family: var(--mono);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--heading);
+    }
+    .meta-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; margin-top: 0.2rem; }
+    .score-bar {
+      flex: 1;
+      min-width: 200px;
+    }
+    .score-bar-label {
+      display: flex; justify-content: space-between;
+      font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .score-track {
+      height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      width: 0;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ─── Pros/Cons General ─────────────────────────── */
+    .general { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+    .benefit-item {
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 1rem; align-items: flex-start;
+    }
+    .benefit-item:last-child { border-bottom: none; }
+    .benefit-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      width: 24px;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+    }
+    .benefit-body h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--heading);
+      margin-bottom: 0.3rem;
+    }
+    .benefit-body p { font-size: 0.85rem; color: var(--muted); }
+    .col-heading {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 2px solid;
+    }
+    .col-heading.pro { color: var(--accent); border-color: var(--accent); }
+    .col-heading.con { color: var(--orange); border-color: var(--orange); }
+
+    /* ─── Verdict Table ─────────────────────────────── */
+    .verdict { }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 0.88rem;
+    }
+    .comparison-table thead {
+      background: var(--card);
+    }
+    .comparison-table th {
+      padding: 1rem 1.2rem;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table td {
+      padding: 0.9rem 1.2rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table tbody tr { background: var(--surface); transition: background 0.15s; }
+    .comparison-table tbody tr:last-child td { border-bottom: none; }
+    .comparison-table tbody tr:hover { background: var(--card); }
+    .lang-badge {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--heading);
+    }
+    .rating {
+      display: inline-flex; gap: 3px;
+    }
+    .star { color: var(--accent); font-size: 0.75rem; }
+    .star.empty { color: var(--border); }
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      letter-spacing: 0.04em;
+    }
+    .badge-high { background: rgba(0,212,170,0.15); color: var(--accent); }
+    .badge-med  { background: rgba(167,139,250,0.15); color: var(--purple); }
+    .badge-low  { background: rgba(255,107,53,0.15); color: var(--orange); }
+
+    /* ─── Tips ──────────────────────────────────────── */
+    .tips { background: var(--surface); border-top: 1px solid var(--border); }
+    .tips-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .tip-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.8rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .tip-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .tip-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+    }
+    .tip-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .tip-card h4 { font-size: 1rem; color: var(--heading); margin-bottom: 0.6rem; font-weight: 700; }
+    .tip-card p { font-size: 0.85rem; color: var(--muted); }
+
+    /* ─── Footer ────────────────────────────────────── */
+    footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 3rem 4rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+    .footer-brand span { color: var(--accent); }
+    .footer-note { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+
+    /* ─── Progress Bar ──────────────────────────────── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; z-index: 200;
+      height: 2px; background: var(--accent);
+      width: 0; transition: width 0.1s linear;
+    }
+
+    /* ─── Animations ────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ─── Responsive ────────────────────────────────── */
+    @media (max-width: 900px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; padding: 2rem 1.5rem; padding-top: 6rem; }
+      .hero-terminal { display: none; }
+      section { padding: 4rem 1.5rem; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .overview-text { grid-template-columns: 1fr; gap: 1.5rem; }
+      .lang-content.active { grid-template-columns: 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+      .tips-grid { grid-template-columns: 1fr; }
+      footer { padding: 2rem 1.5rem; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+#här är egen html för att byta mellan sidorna
+<div class="delsida"><h5>här är de olika delsidorna <a href="index.html" target="_blank">Sida 1</a> <a href="sida2.html" target="_blank">Sida 2</a></h5></div>
+
+<div id="progress-bar"></div>
+
+<!-- ── Navigation ────────────────────────────────────── -->
+<nav>
+  <a href="#" class="nav-logo">AI<span>//</span>CODE</a>
+  <ul class="nav-links">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#languages">Languages</a></li>
+    <li><a href="#general">Pros & Cons</a></li>
+    <li><a href="#verdict">Comparison</a></li>
+    <li><a href="#tips">Best Practices</a></li>
+  </ul>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────────── -->
+<section class="hero" id="home">
+  <div class="hero-text">
+    <span class="hero-eyebrow">// Developer Intelligence Report</span>
+    <h1>AI-Generated<br>Code — <em>Promise<br>& Peril</em></h1>
+    <p class="hero-desc">
+      A language-by-language analysis of what AI coding assistants genuinely excel at, where they fall short, and how to use them without losing your engineering instincts.
+    </p>
+    <div class="hero-cta">
+      <a href="#languages" class="btn btn-primary">Explore Languages</a>
+      <a href="#general" class="btn btn-ghost">View Pros & Cons</a>
+    </div>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="terminal-bar">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+      <span class="terminal-title">ai_assistant.py</span>
+    </div>
+    <div class="terminal-body" id="terminal-output"></div>
+  </div>
+</section>
+
+<!-- ── Overview ──────────────────────────────────────── -->
+<section class="overview" id="overview">
+  <div class="section-label">// 01 — Overview</div>
+  <div class="divider"></div>
+  <h2 class="section-title">The State of AI-Assisted<br>Development</h2>
+
+  <div class="stats-grid reveal">
+    <div class="stat-card">
+      <div class="stat-num">76<span style="font-size:1.5rem">%</span></div>
+      <div class="stat-label">Developers using AI tools regularly</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">55<span style="font-size:1.5rem">%</span></div>
+      <div class="stat-label">Self-reported productivity gain</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">40<span style="font-size:1.5rem">%</span></div>
+      <div class="stat-label">Code written by AI at top firms</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3×</div>
+      <div class="stat-label">Faster prototyping for boilerplate</div>
+    </div>
+  </div>
+
+  <div class="overview-text reveal">
+    <div>
+      <p>AI coding assistants — from GitHub Copilot to Claude to Cursor — have fundamentally changed how software gets written. By training on billions of lines of code across dozens of languages, these models can autocomplete functions, generate test suites, refactor legacy code, and even architect entire modules from a plain-English description.</p>
+      <p>But the picture is nuanced. <strong>AI performs very differently depending on the programming language.</strong> High-level, dynamically typed languages with enormous training corpora (Python, JavaScript) tend to yield impressive results. Lower-level or more niche languages reveal the model's limitations quickly.</p>
+    </div>
+    <div>
+      <p>The key is understanding the <strong>mechanics of why AI code generation works</strong> — and fails. Models learn statistical patterns. They excel where those patterns are dense and consistent (popular frameworks, common algorithms) and struggle where precision, domain knowledge, or up-to-date library APIs are required.</p>
+      <p>This guide breaks down the actual trade-offs per language and gives you the framework to incorporate AI tools <strong>without sacrificing code quality or your own growth as an engineer.</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Language Explorer ──────────────────────────────── -->
+<section class="lang-explorer" id="languages">
+  <div class="section-label">// 02 — Language Explorer</div>
+  <div class="divider"></div>
+  <h2 class="section-title">Pick a Language</h2>
+  <p class="section-sub">Select a language to see a detailed breakdown of AI's strengths and weaknesses when generating code for it.</p>
+
+  <div class="lang-tabs" id="lang-tabs">
+    <button class="lang-tab active" data-lang="python">Python</button>
+    <button class="lang-tab" data-lang="javascript">JavaScript</button>
+    <button class="lang-tab" data-lang="typescript">TypeScript</button>
+    <button class="lang-tab" data-lang="rust">Rust</button>
+    <button class="lang-tab" data-lang="java">Java</button>
+    <button class="lang-tab" data-lang="cpp">C++</button>
+    <button class="lang-tab" data-lang="go">Go</button>
+    <button class="lang-tab" data-lang="sql">SQL</button>
+  </div>
+
+  <div id="lang-panels"></div>
+</section>
+
+<!-- ── General Pros & Cons ────────────────────────────── -->
+<section class="general" id="general">
+  <div class="section-label">// 03 — Universal Trade-offs</div>
+  <div class="divider"></div>
+  <h2 class="section-title">Across All Languages</h2>
+  <p class="section-sub">Regardless of the language, certain advantages and risks are consistent when using AI for code generation.</p>
+
+  <div class="two-col reveal">
+    <div>
+      <div class="col-heading pro">✓ Advantages</div>
+      <div class="benefit-item">
+        <span class="benefit-num">01</span>
+        <div class="benefit-body">
+          <h4>Velocity on Boilerplate</h4>
+          <p>CRUD endpoints, DTO classes, unit test scaffolding, configuration files — AI can generate these in seconds, freeing developers to focus on actual problem-solving and architecture.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">02</span>
+        <div class="benefit-body">
+          <h4>Learning Accelerator</h4>
+          <p>AI explains unfamiliar syntax, patterns, and library APIs inline. Junior developers can learn how experienced engineers structure code without waiting for code reviews.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">03</span>
+        <div class="benefit-body">
+          <h4>Cross-Language Translation</h4>
+          <p>Converting a Python script to Go, or a Java service to TypeScript, is a task where AI provides a solid first draft, dramatically reducing the mechanical effort involved.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">04</span>
+        <div class="benefit-body">
+          <h4>Documentation at Zero Cost</h4>
+          <p>Generating docstrings, JSDoc comments, README sections, and API references from existing code is something AI handles reliably and faster than any human.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">05</span>
+        <div class="benefit-body">
+          <h4>Regex & Algorithm Recall</h4>
+          <p>Complex regular expressions, sorting algorithms, tree traversal, and graph operations are patterns AI has seen millions of times and reproduces accurately.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="col-heading con">✗ Risks</div>
+      <div class="benefit-item">
+        <span class="benefit-num">01</span>
+        <div class="benefit-body">
+          <h4>Confident Hallucinations</h4>
+          <p>AI will invent non-existent library methods, deprecated APIs, or subtly wrong logic with complete confidence. Every generated snippet must be tested and reviewed.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">02</span>
+        <div class="benefit-body">
+          <h4>Security Blind Spots</h4>
+          <p>Generated code often misses injection vulnerabilities, improper authentication, insecure deserialization, or hardcoded secrets. Security review cannot be delegated to AI alone.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">03</span>
+        <div class="benefit-body">
+          <h4>Context Collapse</h4>
+          <p>AI lacks deep understanding of your specific domain, business rules, and architectural decisions. Generated code may be locally correct but globally wrong for your system.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">04</span>
+        <div class="benefit-body">
+          <h4>Skill Atrophy Risk</h4>
+          <p>Over-reliance on AI generation — especially early in a career — can prevent developers from developing deep problem-solving ability and debugging instincts.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-num">05</span>
+        <div class="benefit-body">
+          <h4>License & Copyright Ambiguity</h4>
+          <p>AI training data includes open-source code. There are unresolved legal questions about whether generated code can reproduce GPL-licensed patterns in proprietary products.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Verdict Table ──────────────────────────────────── -->
+<section class="verdict" id="verdict">
+  <div class="section-label">// 04 — Comparison Matrix</div>
+  <div class="divider"></div>
+  <h2 class="section-title">Language-by-Language Verdict</h2>
+  <p class="section-sub">A quick reference for how well AI tools perform across different dimensions for each major language.</p>
+
+  <div class="reveal">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Language</th>
+          <th>Code Quality</th>
+          <th>Security Awareness</th>
+          <th>Ecosystem Knowledge</th>
+          <th>AI Suitability</th>
+          <th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody id="verdict-table"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── Tips ──────────────────────────────────────────── -->
+<section class="tips" id="tips">
+  <div class="section-label">// 05 — Best Practices</div>
+  <div class="divider"></div>
+  <h2 class="section-title">Getting the Most<br>from AI Code Generation</h2>
+  <p class="section-sub">How to use AI as a force multiplier without the common pitfalls.</p>
+
+  <div class="tips-grid reveal">
+    <div class="tip-card">
+      <div class="tip-num">// 01</div>
+      <h4>Always Review Output</h4>
+      <p>Treat AI-generated code like a pull request from a very fast but junior developer. It needs your review, test coverage, and integration into your architecture with intention.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num">// 02</div>
+      <h4>Prompt with Context</h4>
+      <p>The more context you give the model — existing code, constraints, the purpose of a function — the better the output. Vague prompts produce generic, often useless results.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num">// 03</div>
+      <h4>Use AI for Tests First</h4>
+      <p>Generating unit tests for existing code is one of the safest and highest-value uses. You get coverage fast, and the tests themselves reveal whether the AI understood your logic.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num">// 04</div>
+      <h4>Security Audit Every Output</h4>
+      <p>Run generated code through a static analysis tool (Semgrep, Bandit, ESLint security plugins) before merging. Never trust AI with authentication, encryption, or input validation without review.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num">// 05</div>
+      <h4>Prototype Fast, Rewrite Thoughtfully</h4>
+      <p>Use AI to get a working prototype quickly, then rewrite the critical parts with full understanding. This keeps velocity high while ensuring you own and understand your codebase.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num">// 06</div>
+      <h4>Keep Your Own Skills Sharp</h4>
+      <p>Solve algorithm challenges manually, read source code, and practice without AI assistance regularly. The best AI-assisted developers are still excellent developers without the tool.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────── -->
+<footer>
+  <div class="footer-brand">AI<span>//</span>CODE — Developer Intelligence</div>
+  <div class="footer-note">An educational resource. All data points are illustrative of industry trends.</div>
+</footer>
+
+<script>
+/* ── Data ─────────────────────────────────────────── */
+const languages = {
+  python: {
+    name: "Python",
+    quality: 4.5, security: 3, ecosystem: 5,
+    suitability: "High",
+    verdict: "Excellent",
+    trainingSize: "Enormous",
+    bestFor: "Data science, scripting, APIs",
+    weakest: "Async edge cases",
+    pros: [
+      { title: "Comprehensive library coverage", desc: "NumPy, Pandas, Flask, Django, FastAPI — AI knows these inside-out and generates idiomatic code." },
+      { title: "Natural language to code", desc: "Python's readable syntax aligns with how AI models reason. Data pipelines from descriptions work surprisingly well." },
+      { title: "Testing generation", desc: "pytest scaffolding, fixtures, and parametrized tests are generated reliably — significant time savings." },
+      { title: "Refactoring legacy code", desc: "Converting procedural Python to OOP or modernizing Python 2 to Python 3 is a task AI handles with high accuracy." },
+      { title: "Notebook cells and EDA", desc: "Exploratory data analysis workflows in Jupyter are excellent use cases — AI can suggest visualizations and stats." }
+    ],
+    cons: [
+      { title: "Stale library APIs", desc: "AI may use deprecated methods from older versions of libraries like Scikit-learn or TensorFlow. Always verify docs." },
+      { title: "Async/await complexity", desc: "Complex asyncio patterns, event loop management, and concurrent exception handling frequently contain subtle bugs." },
+      { title: "Type hint gaps", desc: "Generated code often omits or incorrectly uses type hints, reducing the value of tools like mypy." },
+      { title: "Security in web code", desc: "Flask/Django routes generated by AI may miss CSRF protection, improper input sanitization, or SQL injection vectors." },
+      { title: "Performance-critical code", desc: "AI rarely suggests Cython, NumPy vectorization, or C extensions when Python bottlenecks need optimization." }
+    ]
+  },
+  javascript: {
+    name: "JavaScript",
+    quality: 4.2, security: 2.5, ecosystem: 4.8,
+    suitability: "High",
+    verdict: "Very Good",
+    trainingSize: "Enormous",
+    bestFor: "UI, Node backends, tooling",
+    weakest: "Security, async errors",
+    pros: [
+      { title: "React & Vue components", desc: "UI component generation is one of the strongest AI use cases — hooks, state management, and JSX all generated well." },
+      { title: "Node.js boilerplate", desc: "Express routes, middleware, authentication scaffolding, and REST handlers are generated rapidly and correctly." },
+      { title: "DOM manipulation", desc: "Event listeners, animations, and browser API usage are well-understood by AI given JavaScript's massive training corpus." },
+      { title: "Utility functions", desc: "Array transformations, object manipulation, debounce/throttle — these common patterns are reproduced flawlessly." },
+      { title: "Package ecosystem", desc: "AI knows npm packages deeply. It can suggest the right library, import it correctly, and demonstrate basic usage." }
+    ],
+    cons: [
+      { title: "Callback and Promise hell", desc: "Complex async chains with error handling are frequently wrong. AI struggles to correctly propagate errors across async boundaries." },
+      { title: "XSS vulnerabilities", desc: "AI-generated code using innerHTML or dangerouslySetInnerHTML without sanitization is a common and dangerous pattern." },
+      { title: "this binding bugs", desc: "Class methods, event handlers, and closures involving 'this' are a frequent source of generated bugs." },
+      { title: "Browser compatibility", desc: "AI may use modern APIs without polyfills or consideration for your target browser support matrix." },
+      { title: "Module system confusion", desc: "Mixing CommonJS require() and ESM import/export in the same project causes runtime errors in generated code." }
+    ]
+  },
+  typescript: {
+    name: "TypeScript",
+    quality: 4.0, security: 3.2, ecosystem: 4.5,
+    suitability: "High",
+    verdict: "Very Good",
+    trainingSize: "Large",
+    bestFor: "Enterprise apps, typed APIs",
+    weakest: "Generic type complexity",
+    pros: [
+      { title: "Interface and type generation", desc: "AI generates TypeScript interfaces from JSON schemas, API responses, or plain descriptions accurately and quickly." },
+      { title: "Generic utility types", desc: "Partial, Readonly, Pick, Omit and custom mapped types are generated correctly for common use cases." },
+      { title: "API type safety", desc: "Typing Axios responses, Fetch wrappers, and Zod schemas are areas where AI saves significant boilerplate time." },
+      { title: "Migration from JavaScript", desc: "Typing an existing JS codebase is tedious. AI handles the mechanical parts well — adding types, fixing obvious any usages." },
+      { title: "Decorator patterns", desc: "NestJS decorators, class-validator decorators, and TypeORM entity definitions are reliably generated." }
+    ],
+    cons: [
+      { title: "Complex generic constraints", desc: "Deeply nested generics with conditional types and infer keywords often exceed AI's reliable reasoning abilities." },
+      { title: "Overuse of 'any'", desc: "When AI can't figure out a type, it defaults to 'any', which silently defeats the purpose of using TypeScript." },
+      { title: "Declaration file generation", desc: "Writing accurate .d.ts files for existing JavaScript libraries is challenging for AI — type errors often remain." },
+      { title: "Type narrowing subtleties", desc: "Discriminated unions and complex narrowing logic are frequently implemented incorrectly in generated code." },
+      { title: "Compiler configuration", desc: "tsconfig.json recommendations from AI are often outdated or suboptimal for strict modern TypeScript projects." }
+    ]
+  },
+  rust: {
+    name: "Rust",
+    quality: 3.0, security: 3.8, ecosystem: 3.0,
+    suitability: "Medium",
+    verdict: "Moderate",
+    trainingSize: "Medium",
+    bestFor: "Systems, CLI tools",
+    weakest: "Lifetimes, borrow checker",
+    pros: [
+      { title: "Memory safety pattern awareness", desc: "AI understands Rust's ownership model conceptually and will attempt to avoid use-after-free and data races." },
+      { title: "CLI tool boilerplate", desc: "clap-based CLI argument parsing, structopt usage, and stdin/stdout handling are generated reliably." },
+      { title: "Error handling with Result", desc: "The ? operator, custom Error types, and thiserror/anyhow patterns are generally applied correctly." },
+      { title: "Trait implementations", desc: "Standard trait impls — Display, From, Iterator, Serialize/Deserialize — are a good use case for AI in Rust." },
+      { title: "Documentation examples", desc: "Doc tests and example snippets in rustdoc format are generated well and often compile on first attempt." }
+    ],
+    cons: [
+      { title: "Lifetime annotation errors", desc: "Lifetime parameters are one of Rust's hardest concepts and AI-generated lifetimes frequently cause compiler errors." },
+      { title: "Borrow checker fights", desc: "Generated code often fails to compile due to borrowing the same value as mutable and immutable simultaneously." },
+      { title: "Async Rust complexity", desc: "Tokio, async-std, and the interplay between Send + Sync bounds and async traits is consistently problematic in AI output." },
+      { title: "Unsafe blocks", desc: "AI has no reliable model of what makes unsafe Rust actually safe. Unsafe blocks from AI must be scrutinized extremely carefully." },
+      { title: "Macro development", desc: "Writing proc macros or complex declarative macros is essentially beyond AI's reliable capabilities in Rust." }
+    ]
+  },
+  java: {
+    name: "Java",
+    quality: 4.0, security: 3.5, ecosystem: 4.5,
+    suitability: "High",
+    verdict: "Very Good",
+    trainingSize: "Enormous",
+    bestFor: "Enterprise, Spring Boot, Android",
+    weakest: "Concurrency, annotations",
+    pros: [
+      { title: "Spring Boot scaffolding", desc: "Controllers, Services, Repositories, and JPA entities are generated quickly and correctly following Spring conventions." },
+      { title: "Design pattern implementation", desc: "Java's pattern-heavy ecosystem (Factory, Strategy, Builder, Singleton) is extremely well represented in AI training data." },
+      { title: "Boilerplate elimination", desc: "Getters, setters, constructors, equals/hashCode — AI generates this instantly, making Lombok feel redundant in some contexts." },
+      { title: "Test generation with JUnit", desc: "JUnit 5 tests with Mockito mocks are a reliable AI output. Test coverage generation saves substantial time." },
+      { title: "Android components", desc: "Activity, Fragment, ViewModel, and RecyclerView patterns are well-understood by AI, accelerating Android development." }
+    ],
+    cons: [
+      { title: "Concurrency pitfalls", desc: "Thread safety, synchronized blocks, and java.util.concurrent usage are areas where AI generates subtly dangerous code." },
+      { title: "Annotation processing", desc: "Custom annotation processors and compile-time code generation (APT) are largely beyond reliable AI output." },
+      { title: "JVM tuning", desc: "GC configuration, memory flags, and JVM performance tuning require empirical knowledge AI cannot reliably provide." },
+      { title: "Older codebases", desc: "Java EE patterns (Servlets, JSF, EJBs) are less well-represented in training data, leading to lower quality for legacy systems." },
+      { title: "Reflection and generics erasure", desc: "Runtime generic type handling via reflection is a common source of ClassCastExceptions in AI-generated Java code." }
+    ]
+  },
+  cpp: {
+    name: "C++",
+    quality: 2.8, security: 2.5, ecosystem: 3.0,
+    suitability: "Low",
+    verdict: "Use with Caution",
+    trainingSize: "Medium",
+    bestFor: "Algorithms, game dev patterns",
+    weakest: "Memory management, UB",
+    pros: [
+      { title: "Standard algorithm usage", desc: "std::sort, std::find, std::transform and other STL algorithms are applied correctly by AI in clear contexts." },
+      { title: "Data structure implementation", desc: "Linked lists, BSTs, and hash maps as C++ exercises are generated reliably — useful for learning and competitive programming." },
+      { title: "Modern C++ syntax", desc: "Range-based for loops, auto, structured bindings, and smart pointer usage reflect modern C++17/20 idioms well." },
+      { title: "Header/source separation", desc: "AI understands the .h/.cpp separation pattern and generates both files consistently for class definitions." },
+      { title: "CMake basics", desc: "Basic CMakeLists.txt for simple projects is generated correctly, lowering the build configuration barrier." }
+    ],
+    cons: [
+      { title: "Undefined behavior everywhere", desc: "Memory issues, integer overflow, uninitialized reads — AI-generated C++ is riddled with potential UB that compiles but corrupts silently." },
+      { title: "Memory management bugs", desc: "new/delete, raw pointer ownership, and RAII are frequently incorrect. Buffer overflows and memory leaks are common in AI output." },
+      { title: "Template metaprogramming", desc: "Complex TMP, SFINAE, and concepts are beyond reliable AI generation. Error messages are cryptic and debugging is painful." },
+      { title: "Platform-specific code", desc: "Calling conventions, platform ABI, compiler-specific pragmas, and inline assembly are not reliably generated." },
+      { title: "Security-critical code", desc: "C++ vulnerabilities (buffer overflows, format string bugs, use-after-free) are frequently present in AI output with no indication of risk." }
+    ]
+  },
+  go: {
+    name: "Go",
+    quality: 4.2, security: 3.8, ecosystem: 4.0,
+    suitability: "High",
+    verdict: "Excellent",
+    trainingSize: "Large",
+    bestFor: "Microservices, CLI, cloud",
+    weakest: "Generics (newer feature)",
+    pros: [
+      { title: "HTTP service generation", desc: "net/http handlers, middleware, and routing (chi, Gin, Echo) patterns are generated accurately and idiomatically." },
+      { title: "Goroutine patterns", desc: "Worker pools, fan-out/fan-in, and select-based channel patterns are generated correctly for common concurrency problems." },
+      { title: "Idiomatic error handling", desc: "Go's explicit error return pattern is consistently applied — AI generates proper error wrapping with fmt.Errorf and %w." },
+      { title: "Struct and interface design", desc: "Go's composition-based design is well-understood by AI. Interface segregation and embedding are applied appropriately." },
+      { title: "CLI tools with cobra", desc: "cobra-based CLI applications with subcommands and flags are generated quickly and correctly." }
+    ],
+    cons: [
+      { title: "Generics edge cases", desc: "Go generics were added in 1.18 and AI training data is sparse. Complex generic constraints often have compilation errors." },
+      { title: "Context propagation", desc: "Proper context.Context threading through call chains — especially with cancellation — is frequently incomplete in AI output." },
+      { title: "CGo integration", desc: "Calling C libraries via CGo, handling memory across the boundary, and managing GC pinning are reliably problematic." },
+      { title: "Subtle race conditions", desc: "While basic channel usage is fine, AI-generated goroutine code with shared mutable state introduces data races that the race detector catches." },
+      { title: "Module proxy and toolchain", desc: "Workspace mode, multi-module repositories, and toolchain directives are not reliably understood by AI models." }
+    ]
+  },
+  sql: {
+    name: "SQL",
+    quality: 4.3, security: 2.8, ecosystem: 4.2,
+    suitability: "High",
+    verdict: "Very Good",
+    trainingSize: "Large",
+    bestFor: "Queries, schema design, reporting",
+    weakest: "Injection safety, optimization",
+    pros: [
+      { title: "Complex query generation", desc: "JOINs, CTEs, window functions, subqueries, and aggregations are generated correctly for well-described requirements." },
+      { title: "Schema design", desc: "CREATE TABLE statements with appropriate data types, primary keys, foreign keys, and indices are generated reliably." },
+      { title: "Database-specific syntax", desc: "PostgreSQL, MySQL, SQLite, and SQL Server dialect differences are largely handled when the target DB is specified." },
+      { title: "Reporting queries", desc: "Business intelligence queries — cohort analysis, funnel metrics, time-series aggregations — translate well from natural language." },
+      { title: "Migration scripts", desc: "ALTER TABLE, data transformation scripts, and safe migration patterns (add nullable column, backfill, add constraint) are good AI use cases." }
+    ],
+    cons: [
+      { title: "SQL injection risk", desc: "AI generates queries using string interpolation or concatenation without parameterization — a critical security flaw in generated ORM bypass code." },
+      { title: "Query performance", desc: "AI doesn't understand your data distribution, index statistics, or execution plan. Generated queries can be catastrophically slow at scale." },
+      { title: "Dialect confusion", desc: "Without explicit prompting, AI may mix syntax from multiple SQL dialects causing runtime errors in production databases." },
+      { title: "Transaction complexity", desc: "Multi-statement transactions with proper isolation levels, deadlock handling, and rollback logic are frequently incomplete." },
+      { title: "Legacy schema complexity", desc: "Against schemas with decades of organic growth and undocumented relationships, AI lacks the business context to write correct queries." }
+    ]
+  }
+};
+
+const verdictData = [
+  { lang: "Python",     codeQ: 5, sec: 3, eco: 5, suit: "High",   label: "badge-high" },
+  { lang: "JavaScript", codeQ: 4, sec: 2, eco: 5, suit: "High",   label: "badge-high" },
+  { lang: "TypeScript", codeQ: 4, sec: 3, eco: 5, suit: "High",   label: "badge-high" },
+  { lang: "Go",         codeQ: 4, sec: 4, eco: 4, suit: "High",   label: "badge-high" },
+  { lang: "Java",       codeQ: 4, sec: 3, eco: 4, suit: "High",   label: "badge-high" },
+  { lang: "SQL",        codeQ: 4, sec: 2, eco: 4, suit: "High",   label: "badge-high" },
+  { lang: "Rust",       codeQ: 3, sec: 4, eco: 3, suit: "Medium", label: "badge-med" },
+  { lang: "C++",        codeQ: 3, sec: 2, eco: 3, suit: "Low",    label: "badge-low" },
+];
+
+/* ── Terminal animation ───────────────────────────── */
+const terminalLines = [
+  { text: '# AI Code Generation — Analysis', cls: 't-comment' },
+  { text: '', cls: '' },
+  { text: 'from ai_assistant import CodeGen', cls: '' },
+  { text: '', cls: '' },
+  { text: 'def analyze_languages():', cls: '' },
+  { text: '    languages = [', cls: '' },
+  { text: '        <span class="t-string">"python"</span>, <span class="t-string">"javascript"</span>,', cls: '' },
+  { text: '        <span class="t-string">"rust"</span>, <span class="t-string">"java"</span>, <span class="t-string">"go"</span>,', cls: '' },
+  { text: '        <span class="t-string">"c++"</span>, <span class="t-string">"typescript"</span>,', cls: '' },
+  { text: '    ]', cls: '' },
+  { text: '    <span class="t-keyword">return</span> <span class="t-fn">evaluate</span>(languages)', cls: '' },
+  { text: '', cls: '' },
+  { text: '# Verdict: Use AI as a co-pilot,', cls: 't-comment' },
+  { text: '# not an autopilot.', cls: 't-comment' },
+];
+
+function typeTerminal() {
+  const output = document.getElementById('terminal-output');
+  if (!output) return;
+  let lineIdx = 0;
+  function nextLine() {
+    if (lineIdx >= terminalLines.length) {
+      output.innerHTML += '<span class="t-cursor"></span>';
+      return;
+    }
+    const l = terminalLines[lineIdx++];
+    const div = document.createElement('div');
+    if (l.cls) div.className = l.cls;
+    div.innerHTML = l.text || '&nbsp;';
+    output.appendChild(div);
+    setTimeout(nextLine, 60);
+  }
+  setTimeout(nextLine, 800);
+}
+typeTerminal();
+
+/* ── Build language panels ────────────────────────── */
+function buildPanel(key) {
+  const d = languages[key];
+  const stars = n => {
+    let s = '';
+    for (let i = 1; i <= 5; i++) {
+      s += `<span class="star${i > n ? ' empty' : ''}">★</span>`;
+    }
+    return `<span class="rating">${s}</span>`;
+  };
+  return `
+    <div class="lang-content ${key === 'python' ? 'active' : ''}" id="panel-${key}">
+      <div class="lang-meta">
+        <div class="meta-item">
+          <div class="meta-val">${d.trainingSize}</div>
+          <div class="meta-label">Training Corpus</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-val">${d.suitability}</div>
+          <div class="meta-label">AI Suitability</div>
+        </div>
+        <div class="score-bar">
+          <div class="score-bar-label"><span>Code Quality</span><span>${d.quality}/5</span></div>
+          <div class="score-track"><div class="score-fill" data-width="${(d.quality/5)*100}"></div></div>
+        </div>
+        <div class="score-bar">
+          <div class="score-bar-label"><span>Ecosystem Coverage</span><span>${d.ecosystem}/5</span></div>
+          <div class="score-track"><div class="score-fill" data-width="${(d.ecosystem/5)*100}"></div></div>
+        </div>
+        <div class="score-bar">
+          <div class="score-bar-label"><span>Security Awareness</span><span>${d.security}/5</span></div>
+          <div class="score-track"><div class="score-fill" data-width="${(d.security/5)*100}"></div></div>
+        </div>
+      </div>
+      <div class="pros-card">
+        <div class="card-header">
+          <div class="card-icon pro">✓</div>
+          <span class="card-title pro">Pros for ${d.name}</span>
+        </div>
+        <ul class="point-list">
+          ${d.pros.map(p => `<li><div><span class="point-strong">${p.title}</span><span class="point-desc">${p.desc}</span></div></li>`).join('')}
+        </ul>
+      </div>
+      <div class="cons-card">
+        <div class="card-header">
+          <div class="card-icon con">✗</div>
+          <span class="card-title con">Cons for ${d.name}</span>
+        </div>
+        <ul class="point-list">
+          ${d.cons.map(p => `<li><div><span class="point-strong">${p.title}</span><span class="point-desc">${p.desc}</span></div></li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+const panels = document.getElementById('lang-panels');
+Object.keys(languages).forEach(k => { panels.innerHTML += buildPanel(k); });
+
+/* ── Tab switching ────────────────────────────────── */
+document.getElementById('lang-tabs').addEventListener('click', e => {
+  if (!e.target.classList.contains('lang-tab')) return;
+  const lang = e.target.dataset.lang;
+  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.lang-content').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  const panel = document.getElementById(`panel-${lang}`);
+  panel.classList.add('active');
+  // Animate bars
+  setTimeout(() => {
+    panel.querySelectorAll('.score-fill').forEach(bar => {
+      bar.style.width = bar.dataset.width + '%';
+    });
+  }, 50);
+});
+
+// Init first panel bars
+setTimeout(() => {
+  document.querySelector('#panel-python').querySelectorAll('.score-fill').forEach(bar => {
+    bar.style.width = bar.dataset.width + '%';
+  });
+}, 300);
+
+/* ── Verdict table ────────────────────────────────── */
+function makeStars(n) {
+  let s = '';
+  for (let i = 1; i <= 5; i++) s += `<span class="star${i > n ? ' empty' : ''}">★</span>`;
+  return `<span class="rating">${s}</span>`;
+}
+const tbody = document.getElementById('verdict-table');
+verdictData.forEach(row => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><span class="lang-badge">${row.lang}</span></td>
+    <td>${makeStars(row.codeQ)}</td>
+    <td>${makeStars(row.sec)}</td>
+    <td>${makeStars(row.eco)}</td>
+    <td><span class="badge ${row.label}">${row.suit}</span></td>
+    <td style="color:var(--muted);font-family:var(--mono);font-size:0.78rem">${row.label === 'badge-high' ? 'Recommended' : row.label === 'badge-med' ? 'With care' : 'Expert only'}</td>
+  `;
+  tbody.appendChild(tr);
+});
+
+/* ── Scroll progress bar ──────────────────────────── */
+window.addEventListener('scroll', () => {
+  const total = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = (window.scrollY / total) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+});
+
+/* ── Intersection observer for reveals ───────────── */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      // Also animate score bars when they enter view
+      e.target.querySelectorAll && e.target.querySelectorAll('.score-fill').forEach(bar => {
+        bar.style.width = bar.dataset.width + '%';
+      });
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
