@@ -1,0 +1,253 @@
+# Mini Inventory & Sales System
+# Demonstrates: classes, data processing, sorting,
+#               statistics, formatted table output.
+
+import statistics
+from datetime import datetime, timedelta
+import random
+
+# ─────────────────────────────────────────────────────────
+# Data model
+# ─────────────────────────────────────────────────────────
+
+class Product:
+    def __init__(self, pid, name, category, cost, price, stock):
+        self.pid      = pid
+        self.name     = name
+        self.category = category
+        self.cost     = cost    # purchase cost
+        self.price    = price   # sale price
+        self.stock    = stock
+
+    @property
+    def margin(self):
+        return round((self.price - self.cost) / self.price * 100, 1)
+
+    def __repr__(self):
+        return f"Product({self.pid}: {self.name})"
+
+
+class Sale:
+    def __init__(self, product, qty, date):
+        self.product  = product
+        self.qty      = qty
+        self.date     = date
+        self.revenue  = round(product.price * qty, 2)
+        self.profit   = round((product.price - product.cost) * qty, 2)
+
+
+class Inventory:
+    def __init__(self):
+        self.products = {}
+        self.sales    = []
+
+    def add_product(self, product):
+        self.products[product.pid] = product
+
+    def sell(self, pid, qty, date):
+        p = self.products.get(pid)
+        if p is None:
+            raise ValueError(f"Unknown product ID: {pid}")
+        if p.stock < qty:
+            raise ValueError(f"Insufficient stock for {p.name} (have {p.stock}, need {qty})")
+        p.stock -= qty
+        sale = Sale(p, qty, date)
+        self.sales.append(sale)
+        return sale
+
+    # ── Reports ───────────────────────────────────────────
+
+    def total_revenue(self):
+        return round(sum(s.revenue for s in self.sales), 2)
+
+    def total_profit(self):
+        return round(sum(s.profit for s in self.sales), 2)
+
+    def sales_by_product(self):
+        result = {}
+        for s in self.sales:
+            key = s.product.name
+            if key not in result:
+                result[key] = {"units": 0, "revenue": 0.0, "profit": 0.0}
+            result[key]["units"]   += s.qty
+            result[key]["revenue"] += s.revenue
+            result[key]["profit"]  += s.profit
+        for v in result.values():
+            v["revenue"] = round(v["revenue"], 2)
+            v["profit"]  = round(v["profit"],  2)
+        return result
+
+    def sales_by_category(self):
+        result = {}
+        for s in self.sales:
+            cat = s.product.category
+            result.setdefault(cat, 0.0)
+            result[cat] += s.revenue
+        return {k: round(v, 2) for k, v in result.items()}
+
+    def daily_revenue(self):
+        result = {}
+        for s in self.sales:
+            day = s.date.strftime("%Y-%m-%d")
+            result.setdefault(day, 0.0)
+            result[day] += s.revenue
+        return {k: round(v, 2) for k, v in sorted(result.items())}
+
+    def low_stock(self, threshold=10):
+        return [p for p in self.products.values() if p.stock <= threshold]
+
+
+# ─────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────
+
+def hr(char="─", width=62):
+    print(char * width)
+
+def table_row(cols, widths, align="left"):
+    row = ""
+    for val, w in zip(cols, widths):
+        s = str(val)
+        row += (s.ljust(w) if align == "left" else s.rjust(w)) + "  "
+    print(row)
+
+def section(title):
+    print()
+    hr("═")
+    print(f"  {title}")
+    hr("═")
+
+
+# ─────────────────────────────────────────────────────────
+# Seed data
+# ─────────────────────────────────────────────────────────
+
+inv = Inventory()
+
+products = [
+    Product("P001", "Mechanical Keyboard",  "Electronics",  45.00, 129.99, 50),
+    Product("P002", "USB-C Hub",            "Electronics",  12.50,  39.99, 80),
+    Product("P003", "Desk Lamp (LED)",      "Furniture",    18.00,  54.99, 35),
+    Product("P004", "Ergonomic Chair",      "Furniture",   120.00, 349.99,  8),
+    Product("P005", "Notebook A5 (3-pack)", "Stationery",   2.10,   8.99, 200),
+    Product("P006", "Whiteboard Markers",   "Stationery",   1.50,   5.49, 150),
+    Product("P007", "Webcam 1080p",         "Electronics",  22.00,  74.99, 40),
+    Product("P008", "Cable Management Kit", "Accessories",   4.00,  14.99, 60),
+    Product("P009", "Monitor Riser",        "Furniture",    15.00,  44.99,  9),
+    Product("P010", "Laptop Stand",         "Accessories",  11.00,  34.99, 55),
+]
+for p in products:
+    inv.add_product(p)
+
+# Simulate 60 days of sales
+random.seed(42)
+base_date = datetime(2025, 1, 1)
+
+sale_weights = {
+    "P001": 3, "P002": 6, "P003": 4, "P004": 1,
+    "P005": 9, "P006": 8, "P007": 5, "P008": 6,
+    "P009": 2, "P010": 4,
+}
+pids    = list(sale_weights.keys())
+weights = [sale_weights[p] for p in pids]
+
+for day_offset in range(60):
+    date = base_date + timedelta(days=day_offset)
+    num_sales = random.randint(2, 6)
+    chosen = random.choices(pids, weights=weights, k=num_sales)
+    for pid in chosen:
+        p = inv.products[pid]
+        max_qty = min(p.stock, random.randint(1, 4))
+        if max_qty > 0:
+            try:
+                inv.sell(pid, max_qty, date)
+            except ValueError:
+                pass  # skip if out of stock
+
+
+# ─────────────────────────────────────────────────────────
+# Output
+# ─────────────────────────────────────────────────────────
+
+print("╔══════════════════════════════════════════════════════════╗")
+print("║          INVENTORY & SALES REPORT  —  Q1 2025           ║")
+print("╚══════════════════════════════════════════════════════════╝")
+print(f"  Generated: {datetime.now().strftime('%d %b %Y  %H:%M')}")
+
+# ── 1. Summary ────────────────────────────────────────────
+section("1 · SUMMARY")
+rev    = inv.total_revenue()
+profit = inv.total_profit()
+costs  = round(rev - profit, 2)
+margin = round(profit / rev * 100, 1) if rev else 0
+
+print(f"  Total Revenue   : £{rev:>10,.2f}")
+print(f"  Total Costs     : £{costs:>10,.2f}")
+print(f"  Gross Profit    : £{profit:>10,.2f}")
+print(f"  Overall Margin  :  {margin:>9.1f}%")
+print(f"  Total Transactions: {len(inv.sales):>6}")
+
+# ── 2. Product performance ────────────────────────────────
+section("2 · PRODUCT PERFORMANCE")
+sbp = inv.sales_by_product()
+sorted_products = sorted(sbp.items(), key=lambda x: x[1]["revenue"], reverse=True)
+
+widths = [24, 8, 12, 12, 8]
+table_row(["Product", "Units", "Revenue £", "Profit £", "Rank"], widths)
+hr()
+for rank, (name, data) in enumerate(sorted_products, 1):
+    table_row([
+        name[:23],
+        data["units"],
+        f"{data['revenue']:,.2f}",
+        f"{data['profit']:,.2f}",
+        f"#{rank}"
+    ], widths)
+
+# ── 3. Category breakdown ─────────────────────────────────
+section("3 · REVENUE BY CATEGORY")
+sbc       = sorted(inv.sales_by_category().items(), key=lambda x: x[1], reverse=True)
+total_rev = inv.total_revenue()
+for cat, rev_cat in sbc:
+    pct = rev_cat / total_rev * 100
+    bar = "█" * int(pct / 2)
+    print(f"  {cat:<14} £{rev_cat:>8,.2f}  {pct:5.1f}%  {bar}")
+
+# ── 4. Daily revenue stats ────────────────────────────────
+section("4 · DAILY REVENUE STATISTICS")
+daily = list(inv.daily_revenue().values())
+print(f"  Days tracked    : {len(daily)}")
+print(f"  Mean / day      : £{statistics.mean(daily):,.2f}")
+print(f"  Median / day    : £{statistics.median(daily):,.2f}")
+print(f"  Std deviation   : £{statistics.stdev(daily):,.2f}")
+print(f"  Best day        : £{max(daily):,.2f}")
+print(f"  Worst day       : £{min(daily):,.2f}")
+
+# ── 5. Inventory status ───────────────────────────────────
+section("5 · CURRENT INVENTORY")
+all_prods = sorted(inv.products.values(), key=lambda p: p.stock)
+widths2   = [24, 12, 8, 8, 8]
+table_row(["Product", "Category", "Stock", "Price", "Margin"], widths2)
+hr()
+for p in all_prods:
+    flag = " ⚠ LOW" if p.stock <= 10 else ""
+    table_row([
+        p.name[:23],
+        p.category,
+        str(p.stock) + flag,
+        f"£{p.price:.2f}",
+        f"{p.margin}%"
+    ], widths2)
+
+# ── 6. Low stock alert ────────────────────────────────────
+section("6 · LOW STOCK ALERTS  (≤ 10 units)")
+low = inv.low_stock(10)
+if low:
+    for p in sorted(low, key=lambda x: x.stock):
+        print(f"  ⚠  {p.name:<26}  stock: {p.stock:>3}  (reorder: {p.pid})")
+else:
+    print("  ✓  All products sufficiently stocked.")
+
+hr("═")
+print("  End of report.")
+hr("═")
