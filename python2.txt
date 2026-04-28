@@ -1,0 +1,499 @@
+"""
+╔══════════════════════════════════════════════════════════╗
+║              TASKMASTER — CLI Task Manager               ║
+║       An interactive to-do app with priorities,          ║
+║       deadlines, categories, and statistics.             ║
+╚══════════════════════════════════════════════════════════╝
+
+Run with:  python inventory_sales.py
+Requires:  Python 3.6+  (no third-party packages)
+"""
+
+import os
+import sys
+from datetime import datetime, date
+
+# ─────────────────────────────────────────────────────────
+# Colour helpers (auto-disabled on Windows if unsupported)
+# ─────────────────────────────────────────────────────────
+
+USE_COLOUR = sys.platform != "win32" or os.environ.get("TERM")
+
+def c(text, code):
+    return f"\033[{code}m{text}\033[0m" if USE_COLOUR else text
+
+def green(t):   return c(t, "32")
+def red(t):     return c(t, "31")
+def yellow(t):  return c(t, "33")
+def cyan(t):    return c(t, "36")
+def bold(t):    return c(t, "1")
+def dim(t):     return c(t, "2")
+def magenta(t): return c(t, "35")
+
+
+# ─────────────────────────────────────────────────────────
+# Data model
+# ─────────────────────────────────────────────────────────
+
+PRIORITIES = {"1": "High", "2": "Medium", "3": "Low"}
+PRIORITY_COLOUR = {"High": red, "Medium": yellow, "Low": green}
+
+CATEGORIES = ["Work", "Personal", "Study", "Health", "Finance", "Other"]
+
+_next_id = 1
+
+class Task:
+    def __init__(self, title, priority, category, deadline=None, notes=""):
+        global _next_id
+        self.id        = _next_id
+        _next_id      += 1
+        self.title     = title
+        self.priority  = priority      # "High" / "Medium" / "Low"
+        self.category  = category
+        self.deadline  = deadline      # date object or None
+        self.notes     = notes
+        self.done      = False
+        self.created   = date.today()
+        self.completed_on = None
+
+    def complete(self):
+        self.done         = True
+        self.completed_on = date.today()
+
+    @property
+    def overdue(self):
+        return (not self.done) and (self.deadline is not None) and (self.deadline < date.today())
+
+    @property
+    def days_until(self):
+        if self.deadline is None:
+            return None
+        return (self.deadline - date.today()).days
+
+    def status_label(self):
+        if self.done:
+            return green("✓ Done")
+        if self.overdue:
+            return red("✗ Overdue")
+        if self.deadline and self.days_until <= 2:
+            return yellow("⚡ Soon")
+        return cyan("○ Open")
+
+
+# ─────────────────────────────────────────────────────────
+# Task store
+# ─────────────────────────────────────────────────────────
+
+class TaskManager:
+    def __init__(self):
+        self.tasks = []
+
+    def add(self, task):
+        self.tasks.append(task)
+
+    def get(self, tid):
+        for t in self.tasks:
+            if t.id == tid:
+                return t
+        return None
+
+    def delete(self, tid):
+        task = self.get(tid)
+        if task:
+            self.tasks.remove(task)
+            return True
+        return False
+
+    def filter(self, *, done=None, category=None, priority=None):
+        result = self.tasks
+        if done is not None:
+            result = [t for t in result if t.done == done]
+        if category:
+            result = [t for t in result if t.category == category]
+        if priority:
+            result = [t for t in result if t.priority == priority]
+        return result
+
+    def sorted_tasks(self, tasks=None):
+        src = tasks if tasks is not None else self.tasks
+        order = {"High": 0, "Medium": 1, "Low": 2}
+        return sorted(src, key=lambda t: (t.done, order[t.priority], t.title))
+
+    def stats(self):
+        total    = len(self.tasks)
+        done     = sum(1 for t in self.tasks if t.done)
+        overdue  = sum(1 for t in self.tasks if t.overdue)
+        by_cat   = {}
+        by_pri   = {"High": 0, "Medium": 0, "Low": 0}
+        for t in self.tasks:
+            by_cat[t.category] = by_cat.get(t.category, 0) + 1
+            by_pri[t.priority] += 1
+        return {
+            "total": total, "done": done,
+            "open": total - done, "overdue": overdue,
+            "by_cat": by_cat, "by_pri": by_pri,
+        }
+
+
+# ─────────────────────────────────────────────────────────
+# UI helpers
+# ─────────────────────────────────────────────────────────
+
+def clear():
+    os.system("cls" if os.name == "nt" else "clear")
+
+def hr(char="─", width=60):
+    print(dim(char * width))
+
+def pause():
+    input(dim("\n  Press Enter to continue…"))
+
+def header(title):
+    print()
+    hr("═")
+    print(bold(f"  {title}"))
+    hr("═")
+
+def prompt(label, default=None):
+    suffix = f" [{default}]" if default is not None else ""
+    val = input(f"  {cyan('›')} {label}{suffix}: ").strip()
+    return val if val else (str(default) if default is not None else "")
+
+def ask_priority():
+    print(f"  {cyan('›')} Priority:")
+    for k, v in PRIORITIES.items():
+        col = PRIORITY_COLOUR[v]
+        print(f"      {k}) {col(v)}")
+    while True:
+        choice = input("    Choose [1/2/3]: ").strip()
+        if choice in PRIORITIES:
+            return PRIORITIES[choice]
+        print(red("    Invalid — enter 1, 2 or 3."))
+
+def ask_category():
+    print(f"  {cyan('›')} Category:")
+    for i, cat in enumerate(CATEGORIES, 1):
+        print(f"      {i}) {cat}")
+    while True:
+        choice = input(f"    Choose [1-{len(CATEGORIES)}]: ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(CATEGORIES):
+            return CATEGORIES[int(choice) - 1]
+        print(red(f"    Invalid — enter a number between 1 and {len(CATEGORIES)}."))
+
+def ask_deadline():
+    while True:
+        raw = input(f"  {cyan('›')} Deadline (YYYY-MM-DD, or blank to skip): ").strip()
+        if not raw:
+            return None
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            print(red("    Invalid date — use YYYY-MM-DD format."))
+
+def ask_task_id(manager, prompt_text="Task ID"):
+    while True:
+        raw = input(f"  {cyan('›')} {prompt_text}: ").strip()
+        if not raw.isdigit():
+            print(red("    Please enter a numeric ID."))
+            continue
+        tid = int(raw)
+        task = manager.get(tid)
+        if task is None:
+            print(red(f"    No task with ID {tid}."))
+            continue
+        return task
+
+
+# ─────────────────────────────────────────────────────────
+# Display functions
+# ─────────────────────────────────────────────────────────
+
+def print_task_row(t, index=None):
+    pri_col = PRIORITY_COLOUR[t.priority]
+    prefix  = f"  {dim(str(index)+'.'): <5}" if index else "  "
+
+    # Build deadline string
+    if t.deadline:
+        d = t.days_until
+        if t.done:
+            dl_str = dim(f"due {t.deadline}")
+        elif d < 0:
+            dl_str = red(f"overdue {abs(d)}d")
+        elif d == 0:
+            dl_str = yellow("due TODAY")
+        elif d == 1:
+            dl_str = yellow("due tomorrow")
+        else:
+            dl_str = cyan(f"due in {d}d")
+    else:
+        dl_str = dim("no deadline")
+
+    title_str = dim(t.title) if t.done else bold(t.title)
+    print(f"{prefix}[{dim(str(t.id)): <4}]  {t.status_label(): <18}  "
+          f"{pri_col(t.priority): <10}  {t.category: <10}  "
+          f"{title_str}")
+    print(f"{'': <10}  {dl_str}")
+    if t.notes:
+        print(f"{'': <10}  {dim('Note: ' + t.notes)}")
+
+def print_task_list(tasks, title="Tasks"):
+    header(title)
+    if not tasks:
+        print(dim("  (no tasks to show)"))
+        return
+    print(dim(f"  {'ID':<6}  {'Status':<16}  {'Priority':<10}  {'Category':<10}  Title"))
+    hr()
+    for i, t in enumerate(tasks, 1):
+        print_task_row(t, i)
+        if i < len(tasks):
+            print(dim("  " + "·" * 56))
+    hr()
+    print(dim(f"  {len(tasks)} task(s) listed."))
+
+def print_task_detail(t):
+    header(f"Task #{t.id} — Detail")
+    print(f"  {bold('Title')}    : {t.title}")
+    col = PRIORITY_COLOUR[t.priority]
+    print(f"  {bold('Priority')} : {col(t.priority)}")
+    print(f"  {bold('Category')} : {t.category}")
+    print(f"  {bold('Status')}   : {t.status_label()}")
+    print(f"  {bold('Created')}  : {t.created}")
+    if t.deadline:
+        d = t.days_until
+        extra = ""
+        if not t.done:
+            extra = f"  ({red('overdue') if d < 0 else yellow('today') if d == 0 else cyan(f'in {d} days')})"
+        print(f"  {bold('Deadline')} : {t.deadline}{extra}")
+    else:
+        print(f"  {bold('Deadline')} : {dim('none')}")
+    if t.done:
+        print(f"  {bold('Completed')}: {t.completed_on}")
+    if t.notes:
+        print(f"  {bold('Notes')}    : {t.notes}")
+
+def print_stats(manager):
+    s = manager.stats()
+    header("Statistics")
+    if s["total"] == 0:
+        print(dim("  No tasks yet."))
+        return
+
+    pct = round(s["done"] / s["total"] * 100) if s["total"] else 0
+    bar_w  = 30
+    filled = int(bar_w * pct / 100)
+    bar    = green("█" * filled) + dim("░" * (bar_w - filled))
+
+    print(f"  Progress  : {bar}  {bold(str(pct)+'%')}")
+    print()
+    print(f"  Total     : {bold(str(s['total']))}")
+    print(f"  Done      : {green(str(s['done']))}")
+    print(f"  Open      : {cyan(str(s['open']))}")
+    print(f"  Overdue   : {red(str(s['overdue'])) if s['overdue'] else green('0')}")
+
+    print()
+    print(bold("  By Priority:"))
+    for pri, count in s["by_pri"].items():
+        col = PRIORITY_COLOUR[pri]
+        bar2 = col("█" * count)
+        print(f"    {pri:<8}: {bar2}  {count}")
+
+    print()
+    print(bold("  By Category:"))
+    for cat, count in sorted(s["by_cat"].items(), key=lambda x: -x[1]):
+        bar3 = magenta("█" * count)
+        print(f"    {cat:<10}: {bar3}  {count}")
+
+
+# ─────────────────────────────────────────────────────────
+# Menu actions
+# ─────────────────────────────────────────────────────────
+
+def action_add(manager):
+    header("Add New Task")
+    title = prompt("Title")
+    if not title:
+        print(red("  Title cannot be empty."))
+        return
+    priority = ask_priority()
+    category = ask_category()
+    deadline = ask_deadline()
+    notes    = prompt("Notes (optional)", default="")
+    task = Task(title, priority, category, deadline, notes)
+    manager.add(task)
+    print(green(f"\n  ✓ Task #{task.id} '{task.title}' added."))
+
+def action_complete(manager):
+    header("Mark Task as Done")
+    if not manager.tasks:
+        print(dim("  No tasks available.")); return
+    print_task_list(manager.sorted_tasks(manager.filter(done=False)), "Open Tasks")
+    task = ask_task_id(manager, "Enter Task ID to mark done")
+    if task.done:
+        print(yellow(f"  Task #{task.id} is already done."))
+    else:
+        task.complete()
+        print(green(f"  ✓ Task #{task.id} '{task.title}' marked as complete!"))
+
+def action_delete(manager):
+    header("Delete Task")
+    if not manager.tasks:
+        print(dim("  No tasks available.")); return
+    print_task_list(manager.sorted_tasks(), "All Tasks")
+    task = ask_task_id(manager, "Enter Task ID to delete")
+    confirm = input(f"  {red('›')} Delete '{task.title}'? (y/N): ").strip().lower()
+    if confirm == "y":
+        manager.delete(task.id)
+        print(red(f"  Task #{task.id} deleted."))
+    else:
+        print(dim("  Cancelled."))
+
+def action_edit(manager):
+    header("Edit Task")
+    if not manager.tasks:
+        print(dim("  No tasks available.")); return
+    print_task_list(manager.sorted_tasks(), "All Tasks")
+    task = ask_task_id(manager, "Enter Task ID to edit")
+    print_task_detail(task)
+    print()
+    print(dim("  (Leave blank to keep current value)"))
+    new_title    = prompt(f"Title", default=task.title)
+    new_priority = ask_priority() if input(f"  {cyan('›')} Change priority? (y/N): ").strip().lower() == "y" else task.priority
+    new_category = ask_category() if input(f"  {cyan('›')} Change category? (y/N): ").strip().lower() == "y" else task.category
+    new_deadline = ask_deadline()  if input(f"  {cyan('›')} Change deadline? (y/N): ").strip().lower() == "y" else task.deadline
+    new_notes    = prompt("Notes", default=task.notes)
+
+    task.title    = new_title    or task.title
+    task.priority = new_priority
+    task.category = new_category
+    task.deadline = new_deadline
+    task.notes    = new_notes
+    print(green(f"\n  ✓ Task #{task.id} updated."))
+
+def action_view(manager):
+    header("View Tasks")
+    print(f"  Filter by:")
+    print(f"    1) All tasks")
+    print(f"    2) Open only")
+    print(f"    3) Done only")
+    print(f"    4) By category")
+    print(f"    5) By priority")
+    print(f"    6) Overdue only")
+    choice = input(f"  {cyan('›')} Choose [1-6]: ").strip()
+
+    if choice == "1":
+        tasks = manager.sorted_tasks()
+        title = "All Tasks"
+    elif choice == "2":
+        tasks = manager.sorted_tasks(manager.filter(done=False))
+        title = "Open Tasks"
+    elif choice == "3":
+        tasks = manager.sorted_tasks(manager.filter(done=True))
+        title = "Completed Tasks"
+    elif choice == "4":
+        cat = ask_category()
+        tasks = manager.sorted_tasks(manager.filter(category=cat))
+        title = f"Category: {cat}"
+    elif choice == "5":
+        pri = ask_priority()
+        tasks = manager.sorted_tasks(manager.filter(priority=pri))
+        title = f"Priority: {pri}"
+    elif choice == "6":
+        tasks = [t for t in manager.tasks if t.overdue]
+        title = "Overdue Tasks"
+    else:
+        print(red("  Invalid choice.")); return
+
+    print_task_list(tasks, title)
+
+def action_detail(manager):
+    header("Task Detail")
+    if not manager.tasks:
+        print(dim("  No tasks available.")); return
+    print_task_list(manager.sorted_tasks(), "All Tasks")
+    task = ask_task_id(manager, "Enter Task ID to view")
+    print_task_detail(task)
+
+
+# ─────────────────────────────────────────────────────────
+# Sample data (pre-loaded so the app isn't empty on start)
+# ─────────────────────────────────────────────────────────
+
+def load_sample_data(manager):
+    samples = [
+        ("Finish Q2 budget report",   "High",   "Finance",  "2025-02-10", "Check with accounting first"),
+        ("30-min run",                "Medium", "Health",   "2025-01-30", ""),
+        ("Read chapter 5",            "Low",    "Study",    "",           "Machine Learning textbook"),
+        ("Fix login bug (#482)",      "High",   "Work",     "2025-01-28", "Reported by QA"),
+        ("Call dentist",              "Medium", "Personal", "",           ""),
+        ("Renew gym membership",      "Low",    "Health",   "2025-02-01", "Discount code: GYM20"),
+        ("Deploy v2.1 to staging",    "High",   "Work",     "2025-01-29", "Coordinate with DevOps"),
+        ("Grocery shopping",          "Low",    "Personal", "",           "Milk, eggs, bread"),
+    ]
+    for title, pri, cat, dl_str, notes in samples:
+        dl = datetime.strptime(dl_str, "%Y-%m-%d").date() if dl_str else None
+        manager.add(Task(title, pri, cat, dl, notes))
+    # Mark one done
+    manager.tasks[4].complete()
+    manager.tasks[7].complete()
+
+
+# ─────────────────────────────────────────────────────────
+# Main menu loop
+# ─────────────────────────────────────────────────────────
+
+MENU = [
+    ("View tasks",          action_view),
+    ("Task detail",         action_detail),
+    ("Add task",            action_add),
+    ("Edit task",           action_edit),
+    ("Mark task done",      action_complete),
+    ("Delete task",         action_delete),
+    ("Statistics",          print_stats),
+]
+
+def main_menu(manager):
+    while True:
+        clear()
+        s = manager.stats()
+        print()
+        print(bold("  ╔══════════════════════════════════════╗"))
+        print(bold("  ║         T A S K M A S T E R          ║"))
+        print(bold("  ╚══════════════════════════════════════╝"))
+        print(f"  {dim(date.today().strftime('%A, %d %B %Y'))}")
+        print()
+        print(f"  Tasks: {bold(str(s['total']))} total  "
+              f"· {green(str(s['done']))} done  "
+              f"· {cyan(str(s['open']))} open  "
+              f"· {(red if s['overdue'] else dim)(str(s['overdue']))} overdue")
+        hr()
+
+        for i, (label, _) in enumerate(MENU, 1):
+            print(f"  {cyan(str(i))})  {label}")
+        print(f"  {red('q')})  Quit")
+        hr()
+
+        choice = input(f"  {cyan('›')} Choose: ").strip().lower()
+
+        if choice == "q":
+            print(green("\n  Goodbye! Stay productive. 👋\n"))
+            break
+        elif choice.isdigit() and 1 <= int(choice) <= len(MENU):
+            _, action = MENU[int(choice) - 1]
+            if action == print_stats:
+                print_stats(manager)
+            else:
+                action(manager)
+            pause()
+        else:
+            print(red("  Invalid choice."))
+            pause()
+
+
+# ─────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    manager = TaskManager()
+    load_sample_data(manager)
+    main_menu(manager)
